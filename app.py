@@ -8,7 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- 🔑 API Keys ---
-GEMINI_API_KEY = "AIzaSyACrunX4U_AAqKNIDeQT9lNCwTJGtb0TCE"
+GEMINI_API_KEY = "AIzaSyBlURdl_x66RSPRAU1vcHLcGUyfE9sQVZ0"
 GOOGLE_MAPS_API_KEY = "AIzaSyDm0P0EWwt6kPrrFVsDx2rodcKbBMDZzFQ"
 
 # --- 🤖 Initialize Gemini Client ---
@@ -46,7 +46,8 @@ def ai_assistant():
         if "place" in intent:
             # Places search
             try:
-                places_result = search_places(user_query, data.get("location", ""))
+                location = data.get("location", "")
+                places_result = search_places(user_query, location)
                 if places_result and len(places_result) > 0:
                     return jsonify({
                         "intent": "places_search",
@@ -85,7 +86,8 @@ def ai_assistant():
                 If you can't find both locations, return "Not found"
                 """
                 
-                extraction_response = chat.send_message(extraction_prompt)
+                extraction_chat = client.chats.create(model=MODEL_NAME)
+                extraction_response = extraction_chat.send_message(extraction_prompt)
                 extraction_text = extraction_response.text.strip()
                 
                 if "Not found" not in extraction_text:
@@ -139,7 +141,7 @@ def ai_assistant():
                         "locations": [geocode_result],
                         "reply": f"Found location: {geocode_result['address']}",
                         "suggestions": [{
-                            "type": "geocode", 
+                            "type": "geocode",
                             "message": "Location marked on the map!"
                         }]
                     })
@@ -151,8 +153,23 @@ def ai_assistant():
 
         else:
             # General chat (not map-related)
-            response = chat.send_message(user_query)
-            return jsonify({"intent": "general", "reply": response.text})
+            try:
+                # Create a new chat for the actual response (not classification)
+                response_chat = client.chats.create(model=MODEL_NAME)
+                response = response_chat.send_message(user_query)
+                return jsonify({
+                    "intent": "general", 
+                    "reply": response.text,
+                    "suggestions": [{
+                        "type": "general",
+                        "message": "Ask me about places, directions, or locations for map features!"
+                    }]
+                })
+            except Exception as e:
+                return jsonify({
+                    "intent": "general",
+                    "reply": "Hello! I'm your Google Maps AI Assistant. I can help you find places, get directions, and answer questions about locations. How can I help you today?"
+                })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -213,20 +230,14 @@ def geocode(address):
     url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {"address": address, "key": GOOGLE_MAPS_API_KEY}
     res = requests.get(url, params=params)
-    data = res.json()
-    
-    if data["status"] != "OK" or not data.get("results"):
-        return {"error": "No results found"}
-    
-    result = data["results"][0]
-    loc = result["geometry"]["location"]
-    
+    results = res.json().get("results", [])
+    if not results:
+        return {"error": "No results"}
+    loc = results[0]["geometry"]["location"]
     return {
-        "formatted_address": result["formatted_address"],
-        "latitude": loc["lat"],
-        "longitude": loc["lng"],
-        "place_id": result.get("place_id"),
-        "types": result.get("types", [])
+        "address": results[0]["formatted_address"],
+        "lat": loc["lat"],
+        "lng": loc["lng"]
     }
 
 
@@ -242,25 +253,6 @@ def home():
             }
         }
     })
-
-
-@app.route("/ask_ai", methods=["POST"])
-def ask_ai():
-    try:
-        data = request.json
-        if not data or "query" not in data:
-            return jsonify({"error": "Missing 'query' field"}), 400
-
-        user_query = data["query"]
-
-        # Simple AI response for general questions
-        chat = client.chats.create(model=MODEL_NAME)
-        response = chat.send_message(user_query)
-        
-        return jsonify({"reply": response.text})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

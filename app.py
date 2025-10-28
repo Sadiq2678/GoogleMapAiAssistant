@@ -214,6 +214,14 @@ def get_directions(origin, destination):
         "duration": leg["duration"]["text"],
         "start_address": leg["start_address"],
         "end_address": leg["end_address"],
+        "start_location": {
+            "lat": leg["start_location"]["lat"],
+            "lng": leg["start_location"]["lng"]
+        },
+        "end_location": {
+            "lat": leg["end_location"]["lat"],
+            "lng": leg["end_location"]["lng"]
+        },
         "steps": [
             {
                 "instruction": step["html_instructions"].replace("<b>", "").replace("</b>", ""),

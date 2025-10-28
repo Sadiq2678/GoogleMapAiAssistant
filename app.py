@@ -3,13 +3,21 @@ from flask_cors import CORS
 import requests
 from google import genai
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # --- 🔑 API Keys ---
-GEMINI_API_KEY = "AIzaSyBlURdl_x66RSPRAU1vcHLcGUyfE9sQVZ0"
-GOOGLE_MAPS_API_KEY = "REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+
+# Check if API keys are loaded
+if not GEMINI_API_KEY or not GOOGLE_MAPS_API_KEY:
+    raise ValueError("Missing required API keys. Please check your .env file.")
 
 # --- 🤖 Initialize Gemini Client ---
 client = genai.Client(api_key=GEMINI_API_KEY)

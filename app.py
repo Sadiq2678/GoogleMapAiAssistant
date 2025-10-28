@@ -9,7 +9,7 @@ CORS(app)
 
 # --- 🔑 API Keys ---
 GEMINI_API_KEY = "AIzaSyBlURdl_x66RSPRAU1vcHLcGUyfE9sQVZ0"
-GOOGLE_MAPS_API_KEY = "AIzaSyDm0P0EWwt6kPrrFVsDx2rodcKbBMDZzFQ"
+GOOGLE_MAPS_API_KEY = "REPLACE_WITH_YOUR_GOOGLE_MAPS_API_KEY"
 
 # --- 🤖 Initialize Gemini Client ---
 client = genai.Client(api_key=GEMINI_API_KEY)
